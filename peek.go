@@ -44,6 +44,18 @@ func main() {
 	var filePathsList []string
 
 	app := tview.NewApplication()
+	defaultBorderColor := tcell.ColorWhite
+	focusBorderColor := tcell.ColorGreen
+
+	// Overriding tview default styles
+	tview.Borders.HorizontalFocus = tview.BoxDrawingsLightHorizontal
+	tview.Borders.VerticalFocus = tview.BoxDrawingsLightVertical
+	tview.Borders.TopLeftFocus = tview.BoxDrawingsLightDownAndRight
+	tview.Borders.TopRightFocus = tview.BoxDrawingsLightDownAndLeft
+	tview.Borders.BottomLeftFocus = tview.BoxDrawingsLightUpAndRight
+	tview.Borders.BottomRightFocus = tview.BoxDrawingsLightUpAndLeft
+
+	// Check if it has stdin, e.g. piped input from other command
 	hasStdin := !(isatty.IsTerminal(os.Stdin.Fd()) || isatty.IsCygwinTerminal(os.Stdin.Fd()))
 
 	if hasStdin {
@@ -67,6 +79,7 @@ func main() {
 
 	leftFrame := tview.NewFrame(filesListView)
 	leftFrame.SetBorder(true).SetTitle("Files")
+	leftFrame.SetBorderColor(focusBorderColor)
 	leftFrame.AddText("Press (q) to exit.", false, tview.AlignTop, tcell.ColorGreen)
 	leftFrame.AddText("Use (j) and (k) or the arrows to select file.", false, tview.AlignTop, tcell.ColorGreen)
 
@@ -127,8 +140,12 @@ func main() {
 			// Switch focus between left and right views with "TAB" key
 			if app.GetFocus() == filesListView {
 				app.SetFocus(fileContentsView)
+				leftFrame.SetBorderColor(defaultBorderColor)
+				rightFrame.SetBorderColor(focusBorderColor)
 			} else {
 				app.SetFocus(filesListView)
+				rightFrame.SetBorderColor(defaultBorderColor)
+				leftFrame.SetBorderColor(focusBorderColor)
 			}
 
 			return nil

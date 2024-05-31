@@ -13,10 +13,6 @@ type FilePreview struct {
 	show bool
 }
 
-func isDirectory(path string) bool {
-	return false
-}
-
 func getFilesInPath(path string) []FilePreview {
 	var filePreviewList []FilePreview
 
@@ -33,6 +29,16 @@ func getFilesInPath(path string) []FilePreview {
 	}
 
 	return filePreviewList
+}
+
+func getFileContents(path string) string {
+	contents, err := os.ReadFile(path)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return string(contents)
 }
 
 func main() {
@@ -63,6 +69,19 @@ func main() {
 		SetDirection(tview.FlexColumn).
 		AddItem(leftFrame, 0, 1, true).
 		AddItem(rightFrame, 0, 2, true)
+
+	// Display selected file contents
+	if len(filePreviewList) > 0 {
+		fileContents := getFileContents(filePreviewList[0].path)
+		fileContentsView.SetText(fileContents)
+
+		filesListView.SetChangedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
+			if filePreviewList[index].show {
+				fileContents := getFileContents(filePreviewList[index].path)
+				fileContentsView.SetText(fileContents)
+			}
+		})
+	}
 
 	// Keyboard events
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -99,6 +118,8 @@ func main() {
 			} else {
 				app.SetFocus(filesListView)
 			}
+
+			return nil
 		}
 		return event
 	})

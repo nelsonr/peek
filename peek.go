@@ -1,20 +1,18 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/mattn/go-isatty"
 	"github.com/rivo/tview"
 )
 
-type FilePreview struct {
-	path string
-	show bool
-}
-
-func getFilesInPath(path string) []FilePreview {
-	var filePreviewList []FilePreview
+func getFilesInPath(path string) []string {
+	var filePreviewList []string
 
 	files, err := os.ReadDir(path)
 
@@ -24,7 +22,7 @@ func getFilesInPath(path string) []FilePreview {
 
 	for _, file := range files {
 		if !file.IsDir() {
-			filePreviewList = append(filePreviewList, FilePreview{path: file.Name(), show: true})
+			filePreviewList = append(filePreviewList, file.Name())
 		}
 	}
 
@@ -35,6 +33,7 @@ func getFileContents(path string) string {
 	contents, err := os.ReadFile(path)
 
 	if err != nil {
+		fmt.Printf("Error reading path: %v\n", path)
 		panic(err)
 	}
 
@@ -42,16 +41,28 @@ func getFileContents(path string) string {
 }
 
 func main() {
+	var filePathsList []string
+
 	app := tview.NewApplication()
-	filePreviewList := getFilesInPath(".")
+	hasStdin := !(isatty.IsTerminal(os.Stdin.Fd()) || isatty.IsCygwinTerminal(os.Stdin.Fd()))
+
+	if hasStdin {
+		fmt.Println("Reading from stdin...")
+		scanner := bufio.NewScanner(os.Stdin)
+
+		for scanner.Scan() {
+			filePathsList = append(filePathsList, scanner.Text())
+		}
+	} else {
+		fmt.Println("Reading from current directory...")
+		filePathsList = getFilesInPath(".")
+	}
 
 	// Left view
 	filesListView := tview.NewList()
 
-	for _, filePreview := range filePreviewList {
-		if filePreview.show {
-			filesListView.AddItem(filePreview.path, "", 0, nil)
-		}
+	for _, filePath := range filePathsList {
+		filesListView.AddItem(filePath, "", 0, nil)
 	}
 
 	leftFrame := tview.NewFrame(filesListView)
@@ -60,7 +71,8 @@ func main() {
 	leftFrame.AddText("Use (j) and (k) or the arrows to select file.", false, tview.AlignTop, tcell.ColorGreen)
 
 	// Rigth view
-	fileContentsView := tview.NewTextView().SetText("File Contents...")
+	filePreviewContents := "Loading..."
+	fileContentsView := tview.NewTextView().SetText(filePreviewContents)
 	rightFrame := tview.NewFrame(fileContentsView)
 	rightFrame.SetBorder(true).SetTitle("Preview")
 
@@ -71,15 +83,15 @@ func main() {
 		AddItem(rightFrame, 0, 2, true)
 
 	// Display selected file contents
-	if len(filePreviewList) > 0 {
-		fileContents := getFileContents(filePreviewList[0].path)
-		fileContentsView.SetText(fileContents)
+	if len(filePathsList) > 0 {
+		filePreviewContents = getFileContents(filePathsList[0])
+		fileContentsView.SetText(filePreviewContents)
 
 		filesListView.SetChangedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
-			if filePreviewList[index].show {
-				fileContents := getFileContents(filePreviewList[index].path)
-				fileContentsView.SetText(fileContents)
-			}
+			filePreviewContents = "Loading..."
+
+			filePreviewContents = getFileContents(filePathsList[index])
+			fileContentsView.SetText(filePreviewContents)
 		})
 	}
 

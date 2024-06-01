@@ -22,6 +22,7 @@ func getFilesInPath(path string) []string {
 
 	for _, file := range files {
 		if !file.IsDir() {
+			fmt.Printf("File: %v", file.Name())
 			filePreviewList = append(filePreviewList, file.Name())
 		}
 	}
@@ -40,6 +41,19 @@ func getFileContents(path string) string {
 	return string(contents)
 }
 
+func isDir(path string) bool {
+	// TODO: Handle symlinks which might point to a dir
+	fileInfo, err := os.Stat(path)
+
+	if err != nil {
+		fmt.Printf("Error checking if path is directory: %v", err)
+
+		return true
+	}
+
+	return fileInfo.IsDir()
+}
+
 func main() {
 	var filePathsList []string
 
@@ -56,14 +70,18 @@ func main() {
 	tview.Borders.BottomRightFocus = tview.BoxDrawingsLightUpAndLeft
 
 	// Check if it has stdin, e.g. piped input from other command
-	hasStdin := !(isatty.IsTerminal(os.Stdin.Fd()) || isatty.IsCygwinTerminal(os.Stdin.Fd()))
+	hasStdin := !isatty.IsTerminal(os.Stdin.Fd()) && !isatty.IsCygwinTerminal(os.Stdin.Fd())
 
 	if hasStdin {
 		fmt.Println("Reading from stdin...")
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
-			filePathsList = append(filePathsList, scanner.Text())
+			path := scanner.Text()
+
+			if !isDir(path) {
+				filePathsList = append(filePathsList, path)
+			}
 		}
 	} else {
 		fmt.Println("Reading from current directory...")

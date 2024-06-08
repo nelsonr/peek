@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 
@@ -21,8 +22,8 @@ func getFilesInPath(path string) []string {
 	}
 
 	for _, file := range files {
-		if !file.IsDir() {
-			fmt.Printf("File: %v", file.Name())
+		if !isDir(file.Name()) {
+			// fmt.Printf("File: %v", file.Name())
 			filePreviewList = append(filePreviewList, file.Name())
 		}
 	}
@@ -34,7 +35,7 @@ func getFileContents(path string) string {
 	contents, err := os.ReadFile(path)
 
 	if err != nil {
-		fmt.Printf("Error reading path: %v\n", path)
+		fmt.Printf("Error reading path: '%v\n'", path)
 		panic(err)
 	}
 
@@ -42,12 +43,16 @@ func getFileContents(path string) string {
 }
 
 func isDir(path string) bool {
-	// TODO: Handle symlinks which might point to a dir
-	fileInfo, err := os.Stat(path)
+	fileInfo, err := os.Lstat(path)
 
 	if err != nil {
-		fmt.Printf("Error checking if path is directory: %v", err)
+		fmt.Printf("Error checking if path is directory: '%v'", err)
 
+		return true
+	}
+
+	// Ignore symbolic links
+	if fileInfo.Mode()&fs.ModeSymlink != 0 {
 		return true
 	}
 
@@ -73,7 +78,7 @@ func main() {
 	hasStdin := !isatty.IsTerminal(os.Stdin.Fd()) && !isatty.IsCygwinTerminal(os.Stdin.Fd())
 
 	if hasStdin {
-		fmt.Println("Reading from stdin...")
+		// fmt.Println("Reading from stdin...")
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
@@ -84,7 +89,7 @@ func main() {
 			}
 		}
 	} else {
-		fmt.Println("Reading from current directory...")
+		// fmt.Println("Reading from current directory...")
 		filePathsList = getFilesInPath(".")
 	}
 
@@ -168,6 +173,7 @@ func main() {
 
 			return nil
 		}
+
 		return event
 	})
 

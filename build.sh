@@ -1,7 +1,7 @@
 #! /bin/bash
 
 echo -n "Building... "
-go build -o peek
+go build
 echo "done!"
 
 echo -n "Copying executable to ~/.local/bin... "

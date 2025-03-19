@@ -1,4 +1,4 @@
-module github.com/nelsonr/go-peek
+module github.com/nelsonr/peek
 
 go 1.23.0
 

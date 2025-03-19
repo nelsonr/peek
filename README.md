@@ -29,7 +29,7 @@ You also combine with other commands, via the pipe operator.
 Example:
 
 ```
-find . *.log | peek
+find . -name *.log | peek
 ```
 
 This would create a preview of all log files found in the current directory (and
